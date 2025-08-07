@@ -2,6 +2,10 @@
 
 A python and opencv based behavior tree visualizer and animation tool. Great for debugging or creating instructional videos.
 
+<p align="center">
+  <img src="example.gif" alt="Behavior Tree Demo">
+</p>
+
 ## Features
 - Draws behavior trees from a simple TreeNode structure
 - Animates tick propagation, status updates, and overlays
