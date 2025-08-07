@@ -23,7 +23,7 @@ Nodes are referred to by ID, thus names don't have to be unique and can also cha
 
 ## Usage:
 
-Everything is implemented in the `visualize_bt` module, which also includes a basic usage example.
+Everything is implemented in the `visualize_bt.py` script, which also includes a basic usage example.
 For a more complex example, see the `examples/` folder.
 
 ### Output
