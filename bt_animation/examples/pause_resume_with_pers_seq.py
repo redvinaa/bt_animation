@@ -1,4 +1,6 @@
-from bt_animation import TreeNode, Render, Tick, SetStatus, Status, Wait, ShowOverlay, RenameNode
+from bt_animation import (
+    TreeNode, Render, Tick, SetStatus, Status, Wait,
+    ShowOverlay, RenameNode, ColorsDark)
 
 
 def main():
@@ -85,7 +87,7 @@ def main():
 
     Render(
         root, actions, canvas_width=1100, canvas_height=500,
-        tick_time_s=0.65).render(filename="bt_animation.mp4")
+        tick_time_s=0.65, colors=ColorsDark).render(filename="bt_animation.mp4")
 
 
 if __name__ == "__main__":

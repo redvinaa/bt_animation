@@ -14,13 +14,31 @@ class Status(enum.Enum):
     FAILURE = "FAILURE"
 
 
-Colors = {
-    Status.IDLE: (240, 240, 240),
+ColorsDark = {
+    Status.IDLE: (60,) * 3,
+    Status.RUNNING: (0, 100, 100),
+    Status.SUCCESS: (0, 120, 0),
+    Status.FAILURE: (0, 0, 120),
+    "ball": (100,) * 3,
+    "background": (20, 20, 20),
+    "text": (255,) * 3,
+    "edge": (100,) * 3,
+    "contour_offset": 110,  # Offset fill color for contour
+    "highlight_offset": -50,  # Highlight color offset for bottom line
+}
+
+
+ColorsLight = {
+    Status.IDLE: (235,) * 3,
     Status.RUNNING: (0, 255, 255),
     Status.SUCCESS: (0, 255, 0),
     Status.FAILURE: (0, 0, 255),
-    "ball": (0, 0, 0),
-    "background": (255, 255, 255)
+    "ball": (255,) * 3,
+    "background": (255,) * 3,
+    "text": (0,) * 3,
+    "edge": (0,) * 3,
+    "contour_offset": -120,  # Offset fill color for contour
+    "highlight_offset": -50,  # Highlight color offset for bottom line
 }
 
 
@@ -92,6 +110,7 @@ class Render:
             tick_time_s: float = 0.4,
             canvas_width: int = 800,
             canvas_height: int = 600,
+            colors = ColorsLight,
             text_scale: float = 0.7,
             text_thickness: int = 1,
             padding_x: int = 10,  # horizontal padding inside the node box
@@ -104,6 +123,7 @@ class Render:
         self.tick_time_s = tick_time_s
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
+        self.colors = colors
         self.text_scale = text_scale
         self.text_thickness = text_thickness
         self.padding_x = padding_x
@@ -158,7 +178,8 @@ class Render:
             h = text_h + 2 * self.padding_y
             self.node_size[n] = (w, h)
 
-    def draw_rounded_rect(self, frame, center, size, fill_color, contour_color, radius=10):
+    def draw_rounded_rect(
+            self, frame, center, size, fill_color, contour_color = None, radius = 10):
         x, y = center
         w, h = size
         half_w, half_h = w // 2, h // 2
@@ -191,7 +212,7 @@ class Render:
         # Bottom highlight line (inside)
         highlight_color = list(fill_color)
         for i in range(3):
-            highlight_color[i] = min(255, int(highlight_color[i] - 50))
+            highlight_color[i] = min(255, int(highlight_color[i] + self.colors["highlight_offset"]))
         highlight_thickness = 2
         inset_offset = radius // 2
         cv2.line(frame,
@@ -200,7 +221,11 @@ class Render:
                  highlight_color, highlight_thickness, cv2.LINE_AA)
 
         # Contour
-        if contour_color is not None and self.contour_width > 0:
+        if contour_color is None:
+            contour_color = [0, 0, 0]
+            for i in range(3):
+                contour_color[i] = max(0, fill_color[i] + self.colors["contour_offset"])
+        if self.contour_width > 0:
             cv2.ellipse(
                 frame, corner_centers['tl'], (radius, radius),
                 180, 0, 90, contour_color, self.contour_width, cv2.LINE_AA)
@@ -229,27 +254,30 @@ class Render:
 
     def draw_ball(self, frame, position):
         pos_int = tuple(position.astype(int))
-        cv2.circle(frame, pos_int, self.tick_ball_radius, Colors["ball"], -1)
-        cv2.circle(frame, pos_int, self.tick_ball_radius, (0, 0, 0), self.contour_width)
+        cv2.circle(frame, pos_int, self.tick_ball_radius, self.colors["ball"], -1)
+        contour_color = [c + self.colors["contour_offset"] for c in self.colors["ball"]]
+        cv2.circle(frame, pos_int, self.tick_ball_radius, contour_color, self.contour_width)
 
     def draw_tree(self, frame):
-        frame.fill(255)
+        # Background
+        frame[:] = self.colors["background"]
+
         for c, p in self.parent.items():
             if p is not None:
-                cv2.line(frame, self.pos[p], self.pos[c], (0, 0, 0), self.contour_width)
+                cv2.line(frame, self.pos[p], self.pos[c], self.colors["edge"], self.contour_width)
 
         for n, center in self.pos.items():
-            color = Colors[self.status[n]]
+            color = self.colors[self.status[n]]
             size = self.node_size[n]
             self.draw_rounded_rect(
-                frame, center, size, fill_color=color, contour_color=(0, 0, 0), radius=2)
+                frame, center, size, fill_color=color, contour_color=None, radius=2)
 
             label = self.node_names[n]
             (text_w, text_h), _ = cv2.getTextSize(
                 label, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.text_thickness)
             text_pos = (center[0] - text_w // 2, center[1] + text_h // 2)
             cv2.putText(
-                frame, label, text_pos, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, (0, 0, 0),
+                frame, label, text_pos, cv2.FONT_HERSHEY_SIMPLEX, self.text_scale, self.colors["text"],
                 self.text_thickness, lineType=cv2.LINE_AA)
 
     def render(self, filename: str | None = None):
@@ -295,7 +323,7 @@ class Render:
                     total_steps = int(act.duration * fps)
                     fade_steps = int(0.1 * total_steps)
                     show_steps = total_steps - 2 * fade_steps
-                    base = np.full_like(frame, Colors["background"], dtype=np.uint8)
+                    base = np.full_like(frame, self.colors["background"], dtype=np.uint8)
 
                     for i in range(fade_steps):
                         self.draw_tree(base)
@@ -310,7 +338,7 @@ class Render:
                         blur = cv2.GaussianBlur(base, (15, 15), 0)
                         cv2.putText(
                             blur, act.text, (150, 150), cv2.FONT_HERSHEY_SIMPLEX, self.text_scale,
-                            (0, 0, 0), self.contour_width, lineType=cv2.LINE_AA)
+                            self.colors["text"], self.contour_width, lineType=cv2.LINE_AA)
                         render_frame(blur)
                         time.sleep(1 / fps)
 
@@ -408,7 +436,8 @@ def main():
         Wait(1.0),
     ]
 
-    Render(root, actions).render("simple_bt_example.mp4")
+    #  Render(root, actions, colors=ColorsLight).render("simple_bt_example.mp4")
+    Render(root, actions, colors=ColorsDark).render("simple_bt_example.mp4")
 
 
 if __name__ == "__main__":
