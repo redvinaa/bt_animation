@@ -392,13 +392,14 @@ class Render:
                     self.draw_tree(frame)
                     render_frame(frame)
 
-        except KeyboardInterrupt:
-            print("Interrupted")
-        finally:
             if writer and filename is not None:
                 writer.release()
                 full_path = os.path.abspath(filename)
                 print(f"Video saved to {full_path}")
+
+        except KeyboardInterrupt:
+            print("Interrupted")
+        finally:
             cv2.destroyAllWindows()
 
 
