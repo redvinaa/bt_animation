@@ -338,7 +338,7 @@ class Render:
                         blur = cv2.GaussianBlur(base, (15, 15), 0)
                         cv2.putText(
                             blur, act.text, (150, 150), cv2.FONT_HERSHEY_SIMPLEX, self.text_scale,
-                            self.colors["text"], self.contour_width, lineType=cv2.LINE_AA)
+                            self.colors["text"], self.text_thickness, lineType=cv2.LINE_AA)
                         render_frame(blur)
                         time.sleep(1 / fps)
 
